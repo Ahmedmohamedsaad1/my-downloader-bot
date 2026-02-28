@@ -66,8 +66,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         title = info.get('title', 'بدون عنوان')
         duration = info.get('duration', 0)
-        minutes = duration // 60
-        seconds = duration % 60
+        minutes = int(duration) // 60
+        seconds = int(duration) % 60
+        
 
         # تخزين المعلومات في user_data
         context.user_data['info'] = info
