@@ -3,8 +3,8 @@ import asyncio
 import subprocess
 import tempfile
 import shutil
-from pathlib import Path
 import logging
+from pathlib import Path
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler, ContextTypes
 import yt_dlp
@@ -12,20 +12,16 @@ import yt_dlp
 # إعداد logging
 logging.basicConfig(level=logging.INFO)
 
-# التوكن (غيّر هنا أو استخدم متغير بيئة)
-TOKEN = os.environ.get("BOT_TOKEN", "8385940501:AAHAcJycypwDe97RAX6cF73lo_ZDXURXQlI")
+# التوكن من متغير البيئة (يتم تعيينه على Railway)
+TOKEN = os.environ.get("BOT_TOKEN")
+if not TOKEN:
+    raise ValueError("لم يتم تعيين متغير البيئة BOT_TOKEN")
 
 # حقوق المطور
 DEVELOPER = "@Bondokkaa0"
 
-# مسار ffmpeg (نفترض أنه في مجلد bin بجانب main.py)
-BASE_DIR = Path(__file__).parent
-FFMPEG_PATH = BASE_DIR / "bin" / "ffmpeg"
-if FFMPEG_PATH.exists():
-    os.environ["PATH"] += os.pathsep + str(FFMPEG_PATH.parent)
-    logging.info(f"تم العثور على ffmpeg في {FFMPEG_PATH}")
-else:
-    logging.warning("ffmpeg غير موجود، قد لا تعمل بعض الوظائف")
+# مسار ffmpeg (نستخدم الأمر المثبت في النظام عبر aptfile)
+FFMPEG_PATH = "ffmpeg"
 
 # دالة بدء
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -117,8 +113,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await query.edit_message_text("⏳ جاري التحميل والمعالجة... قد يستغرق هذا دقيقة.")
 
-    # إنشاء مجلد مؤقت للتحميل
-    download_dir = BASE_DIR / "downloads"
+    # إنشاء مجلد مؤقت للتحميل (في الدليل الحالي)
+    download_dir = Path("downloads")
     download_dir.mkdir(exist_ok=True)
 
     try:
@@ -126,7 +122,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ydl_opts = {
             'outtmpl': str(download_dir / '%(title)s.%(ext)s'),
             'quiet': True,
-            'ffmpeg_location': str(FFMPEG_PATH) if FFMPEG_PATH.exists() else None,
+            'ffmpeg_location': FFMPEG_PATH,  # استخدام ffmpeg من النظام
         }
 
         if choice == "audio":
@@ -172,7 +168,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 compressed_file = download_dir / f"compressed_{latest_file.name}"
                 # خفض الجودة إلى 480p مع معدل بت معتدل
                 cmd = [
-                    str(FFMPEG_PATH) if FFMPEG_PATH.exists() else "ffmpeg",
+                    FFMPEG_PATH,
                     "-i", str(latest_file),
                     "-vf", "scale=854:480",
                     "-c:v", "libx264",
